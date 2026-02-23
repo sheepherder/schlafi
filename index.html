@@ -263,6 +263,50 @@ body {
   width: 0%;
   transition: width 0.3s linear;
 }
+
+/* Voice select */
+.voice-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.voice-row select {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--secondary);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238a80a4' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+.voice-row select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.btn-test {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--secondary);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s;
+}
+.btn-test:hover { border-color: var(--primary); }
+.btn-test:active { background: var(--secondary); }
+.no-voices-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
 </style>
 </head>
 <body>
@@ -313,6 +357,17 @@ body {
         <button class="chip active" data-value="8">8</button>
         <button class="chip" data-value="10">10</button>
         <button class="chip" data-value="15">15</button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label>Stimme</label>
+      <div class="voice-row">
+        <select id="voiceSelect"><option value="">Wird geladen...</option></select>
+        <button class="btn-test" id="btnTest" onclick="testVoice()">Test</button>
+      </div>
+      <div class="no-voices-hint" id="noVoicesHint" style="display:none">
+        Keine deutschen Stimmen gefunden. Pr&uuml;fe die TTS-Einstellungen deines Ger&auml;ts.
       </div>
     </div>
 
@@ -452,51 +507,78 @@ const volumeLabel = document.getElementById('volumeLabel');
 
 // === TTS setup ===
 let ttsUnlocked = false;
-let ttsAvailable = false;
 let chromePauseWorkaround = null;
+let germanVoices = [];
+const voiceSelect = document.getElementById('voiceSelect');
+const noVoicesHint = document.getElementById('noVoicesHint');
 
-function findGermanVoice() {
+function loadVoices() {
   const voices = synth.getVoices();
-  console.log('Available voices:', voices.map(v => v.lang + ' ' + v.name));
-  // Prefer a local German voice, then any German voice
-  let voice = voices.find(v => v.lang.startsWith('de') && v.localService);
-  if (!voice) voice = voices.find(v => v.lang.startsWith('de'));
-  if (voice) console.log('Selected voice:', voice.lang, voice.name);
-  else console.warn('No German voice found!');
-  return voice || null;
+  // Filter German voices (handle both de-DE and de_DE formats)
+  germanVoices = voices.filter(v =>
+    v.lang.replace('_', '-').startsWith('de')
+  );
+  console.log('German voices found:', germanVoices.map(v => v.name + ' (' + v.lang + ')'));
+
+  // Populate select
+  voiceSelect.innerHTML = '';
+  if (germanVoices.length === 0) {
+    voiceSelect.innerHTML = '<option value="">Keine Stimme gefunden</option>';
+    noVoicesHint.style.display = 'block';
+    selectedVoice = null;
+    return;
+  }
+  noVoicesHint.style.display = 'none';
+  germanVoices.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    // Clean up name for display
+    let label = v.name.replace('Google ', '').replace('Android ', '');
+    if (v.localService) label += ' (lokal)';
+    opt.textContent = label;
+    voiceSelect.appendChild(opt);
+  });
+  // Default to first voice
+  selectedVoice = germanVoices[0];
 }
 
 // Voices load async in some browsers
 if (synth.onvoiceschanged !== undefined) {
-  synth.onvoiceschanged = () => { selectedVoice = findGermanVoice(); };
+  synth.onvoiceschanged = loadVoices;
 }
 // Also try sync
-selectedVoice = findGermanVoice();
+loadVoices();
+
+voiceSelect.addEventListener('change', () => {
+  const idx = parseInt(voiceSelect.value);
+  if (!isNaN(idx) && germanVoices[idx]) {
+    selectedVoice = germanVoices[idx];
+  }
+});
+
+function testVoice() {
+  unlockTTS();
+  speak('Schlummershuffle', volume);
+}
 
 // Unlock TTS with a user gesture (called directly from click handler)
 function unlockTTS() {
   if (ttsUnlocked) return;
-  // Short silent utterance to unlock audio context
   const utter = new SpeechSynthesisUtterance('');
   utter.volume = 0;
   utter.lang = 'de-DE';
   if (selectedVoice) utter.voice = selectedVoice;
   synth.speak(utter);
   ttsUnlocked = true;
-  console.log('TTS unlocked via user gesture');
 }
 
 function speak(text, vol) {
-  // Re-check voice if not found yet
-  if (!selectedVoice) selectedVoice = findGermanVoice();
-
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'de-DE';
   if (selectedVoice) utter.voice = selectedVoice;
   utter.rate = 0.85;
   utter.pitch = 0.95;
   utter.volume = vol;
-  utter.onstart = () => { ttsAvailable = true; };
   utter.onerror = (e) => { console.error('TTS error:', e.error); };
 
   // Cancel previous, then wait a tick before speaking (Chromium fix)
