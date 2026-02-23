@@ -410,88 +410,8 @@ body {
   </details>
 </div>
 
+<script src="words.js"></script>
 <script>
-// === Word lists ===
-const words = {
-  Natur: [
-    'Baum','Berg','See','Wolke','Stein','Blume','Moos','Fels','Wurzel','Gras',
-    'Pilz','Blatt','Ast','Rinde','Quelle','Farn','Kiesel','Muschel','Feder','Bernstein',
-    'Koralle','Kristall','Tropfen','Welle','Schatten','Lichtung','Nebel','Tau','Regenbogen','Horizont'
-  ],
-  Tiere: [
-    'Katze','Delfin','Eule','Schmetterling','Igel','Schildkroete','Pinguin','Seepferdchen',
-    'Flamingo','Koala','Waschbaer','Otter','Reh','Marienkaefer','Libelle','Kolibri',
-    'Schnecke','Seestern','Fuchs','Hase','Krabbe','Papagei','Faultier','Biber',
-    'Robbe','Gecko','Chamäleon','Eisvogel','Goldfisch','Glühwürmchen'
-  ],
-  Lebensmittel: [
-    'Apfel','Brot','Kaese','Kirsche','Honig','Erdbeere','Traube','Zimt',
-    'Olive','Mango','Walnuss','Birne','Mandel','Himbeere','Vanille','Pfirsich',
-    'Brombeere','Feige','Ingwer','Kiwi','Melone','Orange','Pflaume','Rosine',
-    'Blaubeere','Dattel','Kokosnuss','Pistazie','Banane','Ananas'
-  ],
-  Haushalt: [
-    'Kissen','Lampe','Tasse','Decke','Kerze','Buch','Schuessel','Vase',
-    'Spiegel','Truhe','Korb','Teppich','Hocker','Regal','Dose','Krug',
-    'Flasche','Glocke','Rahmen','Laterne','Schale','Tablett','Windlicht','Teekanne',
-    'Kanne','Stuhl','Kommode','Vorhang','Gardine','Leselampe'
-  ],
-  Kleidung: [
-    'Schal','Muetze','Handschuh','Stiefel','Hut','Mantel','Socke','Pullover',
-    'Weste','Sandalen','Schleife','Guertel','Kappe','Schuhe','Jacke','Kleid',
-    'Hemd','Poncho','Pantoffeln','Faeustlinge'
-  ],
-  Pflanzen: [
-    'Sonnenblume','Kaktus','Efeu','Loewenzahn','Tulpe','Lavendel','Bambus',
-    'Orchidee','Gänseblümchen','Rose','Lilie','Klee','Veilchen','Distel',
-    'Hyazinthe','Jasmin','Nelke','Dahlie','Vergissmeinnicht','Primel'
-  ],
-  Landschaft: [
-    'Wiese','Huegel','Tal','Pfad','Insel','Strand','Düne','Klippe',
-    'Grotte','Höhle','Schlucht','Ufer','Hafen','Brücke','Steg','Allee',
-    'Garten','Park','Feld','Lichtung'
-  ],
-  Gebaeude: [
-    'Leuchtturm','Mühle','Turm','Kapelle','Scheune','Pavillon','Hütte',
-    'Schloss','Brunnen','Tor','Bogen','Treppe','Balkon','Terrasse','Kuppel',
-    'Gewölbe','Arkade','Pergola','Ruine','Tempel'
-  ],
-  Himmel: [
-    'Stern','Mond','Komet','Sonne','Planet','Galaxie','Nordlicht',
-    'Sternschnuppe','Halbmond','Morgenrot','Abendrot','Milchstrasse',
-    'Vollmond','Mondschein','Daemmerung'
-  ],
-  Musik: [
-    'Flöte','Trommel','Harfe','Geige','Glockenspiel','Klavier','Gitarre',
-    'Triangel','Mundharmonika','Xylophon','Tambourin','Zither','Orgel',
-    'Cello','Dudelsack'
-  ],
-  Material: [
-    'Seide','Wolle','Holz','Glas','Ton','Leinen','Samt','Kupfer',
-    'Marmor','Porzellan','Keramik','Papier','Leder','Baumwolle','Filz'
-  ],
-  Handwerk: [
-    'Pinsel','Nadel','Hammer','Schere','Faden','Stift','Spindel',
-    'Webrahmen','Palette','Staffelei','Meißel','Töpferscheibe','Stempel',
-    'Knopf','Perle'
-  ],
-  Garten: [
-    'Schaukel','Zaun','Laterne','Gießkanne','Vogelhäuschen','Bank',
-    'Sonnenuhr','Windspiel','Hecke','Rasen','Beet','Teich','Springbrunnen',
-    'Gartentor','Rankgitter'
-  ],
-  Wetter: [
-    'Schneeflocke','Regentropfen','Windstille','Raureif','Eiszapfen',
-    'Nieselregen','Sonnenschein','Wolkenbruch','Morgentau','Abendnebel',
-    'Windhauch','Schneedecke','Lichtstrahl','Pfütze','Reif'
-  ],
-  Gewaesser: [
-    'Teich','Bach','Wasserfall','Fluss','Lagune','Riff','Bucht',
-    'Fjord','Meeresbucht','Geysir','Wildbach','Stausee','Tümpel',
-    'Gezeitenbecken','Brandung'
-  ]
-};
-
 // Flatten for counting
 const allCategories = Object.keys(words);
 const totalWords = Object.values(words).reduce((sum, arr) => sum + arr.length, 0);
