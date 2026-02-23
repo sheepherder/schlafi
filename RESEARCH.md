@@ -508,59 +508,213 @@ dedizierten Cognitive-Shuffle-Modus. Das ist unsere Chance.
 
 ---
 
-## 9. Android TTS fuer Deutsch
+## 9. Sprachausgabe: Vorgerenderte Audiodateien statt Echtzeit-TTS
 
-### Eingebaute Android TTS (Google Speech Services)
+### Grundsatzentscheidung: Vorrendern statt Echtzeit
+
+Statt Echtzeit-TTS auf dem Geraet (wo Qualitaet je nach Android-Version und Geraet
+stark schwankt) rendern wir **alle ~500 Woerter einmalig vorab** mit einem hochwertigen
+TTS-Dienst und buendeln die Audiodateien in der App.
+
+**Vorteile:**
+- Konsistente, hoechste Qualitaet auf allen Geraeten
+- Kein Internet noetig zur Laufzeit
+- Kein TTS-Engine-Setup auf dem Geraet
+- Keine Aussprache-Probleme mit zusammengesetzten deutschen Woertern
+- Keine Lautstaerke-Schwankungen (Hauptkritikpunkt an mySleepButton!)
+
+**Kosten:** ~500 Woerter = ~3.200 Zeichen. Bei fast allen Anbietern im Free-Tier oder
+fuer unter 5 EUR einmalig machbar.
+
+**Dateigroesse:** Minimal -- kein Problem fuer eine App.
+
+| Format | Pro Wort (ca.) | 500 Woerter gesamt |
+|---|---|---|
+| **Opus in .ogg (empfohlen)** | 5--10 KB | **2,5 -- 5 MB** |
+| MP3 128kbps | 10--20 KB | 5 -- 10 MB |
+| OGG Vorbis 96kbps | 8--15 KB | 4 -- 7,5 MB |
+| WAV 44.1kHz 16bit | 70--130 KB | 35 -- 65 MB |
+
+**Empfohlenes Format:** Opus in .ogg-Container. Ab Android 5.0 (minSdk 21) voll
+unterstuetzt. Beste Kompression bei hoechster Qualitaet.
+
+---
+
+### 9.1 Kommerzielle TTS-Dienste
+
+#### ElevenLabs (Marktfuehrer)
+
+| Eigenschaft | Details |
+|---|---|
+| **Deutsche Qualitaet** | Exzellent. Multilingual v2 mit natuerlicher Intonation. Gute Komposita-Aussprache. |
+| **Beruhigende Stimmen** | Eigene "Soothing"-Kategorie in der Voice Library. Ideal fuer Schlaf-Apps. |
+| **Free-Tier** | 10.000 Zeichen/Monat -- reicht fuer 3.200 Zeichen, aber KEINE kommerzielle Nutzung. |
+| **Starter-Plan** | 5 USD/Monat, 30.000 Zeichen, kommerzielle Rechte inklusive. |
+| **Kosten fuer 500 Woerter** | 5 USD einmalig (1 Monat Starter buchen, rendern, kuendigen). |
+| **Voice Cloning** | Ja, ab Starter-Plan. |
+| **Lizenz** | Vorgerenderte Audio-Dateien in App buendeln erlaubt ab bezahltem Plan. |
+
+#### Fish Audio S1 (Platz 1 TTS-Arena)
+
+| Eigenschaft | Details |
+|---|---|
+| **Deutsche Qualitaet** | Sehr gut. Korrekter Sprachrhythmus fuer Deutsch, nicht nur englisches Timing mit deutschen Phonemen. |
+| **Beruhigende Stimmen** | Voice Library mit verschiedenen Stilen. 60+ Emotionsmarker. |
+| **Free-Tier** | 8.000 Credits/Monat (~16.000 Zeichen) -- reicht fuer uns, aber KEINE kommerzielle Nutzung. |
+| **Plus-Plan** | 5,50 USD/Monat, kommerzielle Rechte. |
+| **Kosten fuer 500 Woerter** | 5,50 USD einmalig. |
+| **Besonderheit** | #1 auf TTS-Arena-Rangliste. 70% guenstiger als ElevenLabs bei gleicher/besserer Qualitaet. |
+
+#### Cartesia Sonic 3
+
+| Eigenschaft | Details |
+|---|---|
+| **Deutsche Qualitaet** | Sehr gut. Dedizierte deutsche Stimmen (maennlich warm, weiblich warm, maennlich casual). |
+| **Beruhigende Stimmen** | Speziell fuer Audiobooks getuned -- warm und ausdrueckend. In 36/50 Blindvergleichen gegenueber ElevenLabs bevorzugt. |
+| **Pro-Plan** | 5 USD/Monat, 100.000 Credits, kommerzielle Nutzung. |
+| **Kosten fuer 500 Woerter** | 5 USD einmalig. |
+
+#### Google Cloud TTS Neural2
+
+| Eigenschaft | Details |
+|---|---|
+| **Deutsche Qualitaet** | Gut bis sehr gut. Mehrere Neural2-Stimmen (de-DE-Neural2-B maennlich, de-DE-Neural2-C weiblich). |
+| **Free-Tier** | 1 Million Zeichen/Monat fuer Neural2 -- unsere 3.200 Zeichen sind **komplett kostenlos**. |
+| **Kosten fuer 500 Woerter** | **0 USD** -- vollstaendig im Free-Tier. Kommerzielle Nutzung erlaubt. |
+| **Einschraenkung** | Weniger "lebendig" als ElevenLabs/Fish Audio. Keine Soothing-Kategorie. |
+
+#### OpenAI TTS HD
+
+| Eigenschaft | Details |
+|---|---|
+| **Deutsche Qualitaet** | Gut, aber primaer auf Englisch optimiert. Gelegentlich leichter englischer Akzent. |
+| **Stimmen** | 11 Stimmen. "Shimmer" und "Nova" am weichsten/ruhigsten. |
+| **Kosten fuer 500 Woerter** | ~0,10 USD (TTS HD: 30 USD/Mio. Zeichen). |
+| **Einschraenkung** | Fuer Deutsch nicht die natuerlichste Option. |
+
+#### Murf.ai
+
+| Eigenschaft | Details |
+|---|---|
+| **Deutsche Qualitaet** | Gut. 20+ Sprachen, diverse deutsche Stimmen. |
+| **Beruhigende Stimmen** | Eigene "Soothing Voice"-Kategorie. 15+ Sprechstile inkl. "warm storytelling". |
+| **Kosten** | Ab 19 USD/Monat (Creator Lite). Fuer unseren Bedarf Overkill. |
+
+---
+
+### 9.2 Open-Source-Optionen (kostenlos, lokal ausfuehrbar)
+
+#### CosyVoice2-EU (Apache 2.0) -- Deutsch-Spezialist
+
+| Eigenschaft | Details |
+|---|---|
+| **Deutsche Qualitaet** | **Exzellent.** Speziell fuer Deutsch und Franzoesisch optimiert. 83--91% WER-Reduktion ggue. Basismodell. |
+| **Blindtests** | Von deutschen Muttersprachlern **gegenueber ElevenLabs bevorzugt**. |
+| **Voice Cloning** | Zero-Shot Voice Cloning moeglich. |
+| **Lizenz** | Apache 2.0 -- uneingeschraenkt kommerziell nutzbar. |
+| **Hardware** | GPU empfohlen, aber CPU moeglich. |
+| **Links** | [GitHub](https://github.com/hi-paris/CosyVoice2-EU), [Demo](https://horstmann.tech/cosyvoice2-demo/) |
+
+#### Chatterbox Multilingual (MIT) -- Bester Allrounder
+
+| Eigenschaft | Details |
+|---|---|
+| **Deutsche Qualitaet** | Sehr gut. 23 Sprachen inkl. Deutsch. |
+| **Blindtests** | 63,8% Praeferenz gegenueber ElevenLabs (Englisch-Tests). |
+| **Emotionssteuerung** | Ja -- "emotion exaggeration control" eingebaut. Ideal fuer ruhigen Ton. |
+| **Voice Cloning** | Ja, mit nur 3 Sekunden Referenzaudio. |
+| **Lizenz** | MIT -- uneingeschraenkt kommerziell nutzbar. |
+| **Hardware** | GPU empfohlen (500M Parameter). |
+| **Links** | [GitHub](https://github.com/resemble-ai/chatterbox), [Resemble AI](https://www.resemble.ai/) |
+
+#### Piper + Thorsten Voice (Apache 2.0 / CC0) -- Leichtgewicht
+
+| Eigenschaft | Details |
+|---|---|
+| **Deutsche Qualitaet** | Mittel bis gut. Dedizierte deutsche Muttersprachler-Stimmen. |
+| **Verfuegbare deutsche Stimmen** | **thorsten** (low/medium/high), **thorsten_emotional** (medium), **eva_k** (x_low), **karlsson** (low), **kerstin** (low), **ramona** (low) |
+| **Lizenz** | CC0 (Public Domain) fuer Thorsten-Stimmdaten, Apache 2.0/MIT fuer Piper |
+| **Hardware** | Laeuft auf CPU, sogar auf Raspberry Pi. Extrem schnell und leichtgewichtig. |
+| **Einschraenkung** | Klingt bei Einzelwoertern akzeptabel, aber deutlich weniger natuerlich als KI-basierte Alternativen. Keine Emotionssteuerung. Eher fuer Home-Automation als Premium-Schlaf-App. |
+| **Links** | [Piper GitHub](https://github.com/rhasspy/piper), [Thorsten Voice](https://www.thorsten-voice.de/en/), [Voice Samples](https://rhasspy.github.io/piper-samples/) |
+
+#### Qwen3-TTS (Apache 2.0) -- Voice Design per Text
+
+| Eigenschaft | Details |
+|---|---|
+| **Deutsche Qualitaet** | Gut bis sehr gut. 10 Sprachen inkl. Deutsch. |
+| **Besonderheit** | Stimme per natuerlichsprachlicher Beschreibung erstellen: "ruhig, weiblich, warm, langsam". |
+| **Voice Cloning** | Ja (3 Sek. Audio). |
+| **Modellgroessen** | 0.6B und 1.7B Parameter. |
+| **Links** | [GitHub](https://github.com/QwenLM/Qwen3-TTS) |
+
+#### Kokoro (Apache 2.0) -- Schnellster, aber Deutsch experimentell
+
+| Eigenschaft | Details |
+|---|---|
+| **Deutsche Qualitaet** | Experimentell. Deutsch nur ueber Community-Fine-Tunes, noch nicht ausgereift. |
+| **Staerke** | 82M Parameter, extrem schnell (96x Echtzeit auf GPU). Platz 1 HuggingFace Arena fuer Englisch. |
+| **Einschraenkung** | Fuer Deutsch aktuell **nicht empfehlenswert**. |
+| **Links** | [kokorottsai.com](https://kokorottsai.com/) |
+
+---
+
+### 9.3 Gesamtvergleich und Ranking
+
+| Rang | Dienst | Deutsch | Kosten (500 Woerter) | Lizenz | Beruhigende Stimme |
+|---|---|---|---|---|---|
+| 1 | **ElevenLabs** | Exzellent | 5 USD (Starter, 1 Monat) | Kommerziell ab Starter | Ja (Soothing-Library) |
+| 2 | **CosyVoice2-EU** | Exzellent (optimiert!) | **0 USD** (Open Source) | Apache 2.0 | Per Voice Cloning |
+| 3 | **Chatterbox** | Sehr gut | **0 USD** (Open Source) | MIT | Ja (Emotionssteuerung) |
+| 4 | **Cartesia Sonic 3** | Sehr gut, warm | 5 USD (Pro, 1 Monat) | Kommerziell ab Pro | Ja (Audiobook-Stimmen) |
+| 5 | **Fish Audio S1** | Sehr gut | 5,50 USD (Plus, 1 Monat) | Kommerziell ab Plus | Ja (Emotionsmarker) |
+| 6 | **Google Cloud Neural2** | Gut--sehr gut | **0 USD** (Free-Tier) | Kommerziell erlaubt | Eingeschraenkt |
+| 7 | **Qwen3-TTS** | Gut--sehr gut | **0 USD** (Open Source) | Apache 2.0 | Ja (Voice Design) |
+| 8 | **Piper + Thorsten** | Mittel--gut | **0 USD** (Open Source) | CC0 / Apache 2.0 | Nein |
+| 9 | **OpenAI TTS HD** | Gut | ~0,10 USD | Kommerziell erlaubt | Bedingt |
+| 10 | **Kokoro** | Experimentell | **0 USD** (Open Source) | Apache 2.0 | Nein |
+
+---
+
+### 9.4 Empfohlene Strategie
+
+**Schritt 1 -- Kostenlose Tests (0 EUR):**
+1. **CosyVoice2-EU** lokal testen -- speziell fuer Deutsch optimiert, in Blindtests
+   von Muttersprachlern ggue. ElevenLabs bevorzugt
+2. **Chatterbox Multilingual** lokal testen -- MIT-Lizenz, Emotionssteuerung
+3. **Google Cloud TTS Neural2** per Free-Tier testen -- 1 Mio. Zeichen kostenlos
+
+**Schritt 2 -- Falls Open-Source nicht genuegt (5 EUR):**
+4. **ElevenLabs Starter** fuer 5 USD buchen, Soothing-Stimme waehlen, alle 500
+   Woerter rendern, Abo kuendigen
+
+**Schritt 3 -- Mehrere Stimmen anbieten:**
+Bei nur 2,5--5 MB pro Stimm-Set koennten wir sogar mehrere Stimmen (maennlich/weiblich)
+in die App packen -- die Gesamtgroesse bleibt unter 15 MB.
+
+### 9.5 Hinweis: Kein OpenRouter
+
+OpenRouter ist ein **LLM-Router** (routet Textanfragen an GPT/Claude/Llama etc.), kein
+TTS-Dienst. Es hat Audio-Input-Faehigkeiten (Transkription), aber kein dediziertes
+TTS-Output. Fuer vorgerenderte Audiodateien geht man direkt zum TTS-Anbieter.
+
+### 9.6 Fallback: Android-TTS zur Laufzeit
+
+Falls Nutzer eigene Woerter hinzufuegen (Luxus-Feature), brauchen wir fuer diese einen
+Laufzeit-TTS-Fallback. Dafuer eignet sich die eingebaute Android-TTS:
 
 ```kotlin
 val tts = TextToSpeech(context) { status ->
     if (status == TextToSpeech.SUCCESS) {
-        val result = tts.setLanguage(Locale.GERMAN)
-        if (result == TextToSpeech.LANG_AVAILABLE) {
-            tts.setSpeechRate(0.8f)  // Langsamer fuer Schlaf
-            tts.setPitch(0.92f)      // Leicht tiefer, beruhigend
-        }
+        tts.setLanguage(Locale.GERMAN)
+        tts.setSpeechRate(0.8f)   // Langsamer fuer Schlaf
+        tts.setPitch(0.92f)       // Leicht tiefer, beruhigend
     }
-}
-
-fun speakWord(word: String) {
-    tts.speak(word, TextToSpeech.QUEUE_ADD, null, "word_$word")
-    tts.playSilentUtterance(8000L, TextToSpeech.QUEUE_ADD, "pause_$word")
 }
 ```
 
-**Vorteile:** Kostenlos, offline-faehig, keine Latenz, kein API-Key, datenschutzfreundlich
-
-**Nachteile:** Qualitaet variiert je nach Geraet, Stimme klingt teilweise synthetisch,
-zusammengesetzte deutsche Woerter manchmal problematisch
-
-### Google Cloud Text-to-Speech API (Optional Premium)
-
-Drei Qualitaetsstufen:
-1. **Standard**: Guenstig, roboterhaft
-2. **WaveNet**: Natuerlicher (DeepMind)
-3. **Neural2** (empfohlen): Beste Qualitaet, z.B. `de-DE-Neural2-B` (m), `de-DE-Neural2-C` (w)
-
-**Kosten:** $16/1 Mio. Zeichen (Neural2)
-
-### Empfohlener Hybrid-Ansatz
-
-1. **Primaer**: Eingebaute Android-TTS (offline, kostenlos, datenschutzfreundlich)
-2. **Vorrendern**: Woerter beim App-Start als Audio-Cache erzeugen
-3. **Optional**: Google Cloud Neural2 als Premium-Feature
-4. **Pausen**: 8 Sekunden zwischen Woertern (konfigurierbar)
-
-### Technische Architektur
-
-- **Kotlin + Jetpack Compose**: Modernes Android-UI
-- **MVVM**: ViewModel fuer Zustandsverwaltung
-- **Room**: Wortlisten-Speicherung
-- **DataStore**: Einstellungen
-- **Coroutines + Flow**: Asynchrone Wort-Generierung und Timer
-- **Foreground Service**: Zuverlaessige Hintergrund-Wiedergabe
-- **WakeLock**: CPU aktiv halten waehrend TTS
-- **MediaSession**: Sperrbildschirm-Steuerung
-- **AudioFocus**: `AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK`
+Dieses Fallback sollte aber nur fuer benutzerdefinierte Woerter genutzt werden, nicht
+fuer die Standardwortliste.
 
 ---
 
@@ -668,7 +822,7 @@ Das absolute Minimum fuer eine funktionale App:
 
 | Feature | Details |
 |---|---|
-| **Deutsche Sprachausgabe** | Android-TTS, einzelne Woerter mit Pause |
+| **Deutsche Sprachausgabe** | Vorgerenderte Audiodateien (Opus/.ogg), ~500 Woerter gebuendelt |
 | **Einstellbarer Sleep-Timer** | 15, 30, 45, 60 Min. + unbegrenzt |
 | **Einstellbare Pause** | Intervall zwischen Woertern: 5, 8, 10, 15, 20 Sek. |
 | **Wortliste** | 300+ deutsche Woerter in 15+ Kategorien |
@@ -706,7 +860,7 @@ Differenzierende Features fuer eine Premium-Erfahrung:
 
 | Feature | Details |
 |---|---|
-| **Premium-Stimmen** | Google Cloud Neural2 oder voraufgenommene menschliche Stimme |
+| **Zusaetzliche Stimmen** | Weitere vorgerenderte Stimm-Sets (maennlich/weiblich, verschiedene Anbieter) |
 | **KI-generierte Szenen** | LLM generiert einzigartige, bildhaft-neutrale Szenen |
 | **Koerperscan-Modus** | Affective Body Scan (wie mySleepButton) |
 | **Kinderversion** | Altersgerechte Woerter, freundlichere Stimme, Eltern-Timer |
@@ -747,13 +901,14 @@ Differenzierende Features fuer eine Premium-Erfahrung:
 - [ ] Datenbankschema fuer Wortlisten entwerfen
 - [ ] UI-Wireframes / Mockups erstellen
 - [ ] Wortliste kuratieren (300+ deutsche Woerter)
-- [ ] TTS-Integration planen und prototypen
+- [ ] TTS-Anbieter evaluieren (CosyVoice2-EU, Chatterbox, ElevenLabs testen)
+- [ ] Audiodateien vorrendern (500 Woerter, Opus/.ogg)
 - [ ] Timer-/Service-Architektur planen
 
 ### Phase 2: MVP-Entwicklung
 - [ ] Projekt-Setup (Android Studio, Gradle, Compose)
 - [ ] Datenbank + Wortlisten (Room DB, Seed-Daten)
-- [ ] TTS-Engine-Integration (Android-TTS, deutsch)
+- [ ] Audio-Playback-Engine (vorgerenderte Opus/.ogg Dateien abspielen)
 - [ ] Wort-Generierungs-Algorithmus implementieren
 - [ ] Timer-Service (Foreground Service, WakeLock)
 - [ ] Haupt-UI: Startbildschirm mit Ein-Tap-Start
@@ -783,7 +938,7 @@ Differenzierende Features fuer eine Premium-Erfahrung:
 - [ ] Feedback sammeln
 
 ### Phase 5: Luxus-Features (post-launch)
-- [ ] Premium-Stimmen (Cloud Neural2)
+- [ ] Zusaetzliche Stimm-Sets (maennlich/weiblich, verschiedene TTS-Anbieter)
 - [ ] KI-generierte Szenen
 - [ ] Kinderversion
 - [ ] Koerperscan-Modus
@@ -830,6 +985,31 @@ Differenzierende Features fuer eine Premium-Erfahrung:
 - [ScienceAlert: Cognitive Shuffling](https://www.sciencealert.com/cognitive-shuffling-really-could-help-insomniacs-get-to-sleep)
 - [Bulletproof Musician: Serial Diverse Imaging](https://bulletproofmusician.com/difficulty-getting-to-sleep-try-serial-diverse-imaging/)
 - [Cool Tools: My Sleep Button](https://kk.org/cooltools/my-sleep-button/)
+
+### TTS-Anbieter & Open-Source-Modelle
+
+- [ElevenLabs Pricing](https://elevenlabs.io/pricing)
+- [ElevenLabs Soothing Voices](https://elevenlabs.io/voice-library/soothing)
+- [ElevenLabs Terms of Service](https://elevenlabs.io/terms-of-use)
+- [Fish Audio](https://fish.audio/)
+- [Fish Audio vs. ElevenLabs Pricing](https://fish.audio/vs/pricing/elevenlabs/)
+- [Cartesia Pricing](https://cartesia.ai/pricing)
+- [Cartesia German TTS](https://cartesia.ai/languages/german)
+- [Google Cloud TTS](https://cloud.google.com/text-to-speech)
+- [Google Cloud TTS Pricing](https://cloud.google.com/text-to-speech/pricing)
+- [OpenAI TTS Guide](https://developers.openai.com/api/docs/guides/text-to-speech/)
+- [Murf.ai Pricing](https://murf.ai/pricing)
+- [CosyVoice2-EU GitHub](https://github.com/hi-paris/CosyVoice2-EU)
+- [CosyVoice2-EU Demo](https://horstmann.tech/cosyvoice2-demo/)
+- [Chatterbox GitHub](https://github.com/resemble-ai/chatterbox)
+- [Chatterbox Multilingual](https://www.resemble.ai/introducing-chatterbox-multilingual-open-source-tts-for-23-languages/)
+- [Piper TTS GitHub](https://github.com/rhasspy/piper)
+- [Thorsten Voice](https://www.thorsten-voice.de/en/)
+- [Piper Voice Samples](https://rhasspy.github.io/piper-samples/)
+- [Qwen3-TTS GitHub](https://github.com/QwenLM/Qwen3-TTS)
+- [Kokoro TTS](https://kokorottsai.com/)
+- [BentoML: Open-Source TTS Models 2026](https://www.bentoml.com/blog/exploring-the-world-of-open-source-text-to-speech-models)
+- [Best ElevenLabs Alternatives 2026](https://ocdevel.com/blog/20250720-tts)
 
 ### Technische Quellen
 
