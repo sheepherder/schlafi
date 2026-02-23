@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Schlummershuffle – Cognitive Shuffle zum Einschlafen</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0D0B1A;
+  --surface: #161229;
+  --primary: #7B68EE;
+  --primary-dim: #5a4cbf;
+  --secondary: #4A3F6B;
+  --text: #E0D8F0;
+  --text-dim: #8a80a4;
+  --radius: 16px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.container {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100dvh;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+.header p {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* Word Display */
+.word-display {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 200px;
+  margin-bottom: 24px;
+}
+.current-word {
+  font-size: 42px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  min-height: 56px;
+}
+.current-word.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.current-word.fading {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.category-label {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 8px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.category-label.visible { opacity: 1; }
+
+.status-text {
+  font-size: 15px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+/* Timer ring */
+.timer-ring-container {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  margin-bottom: 24px;
+}
+.timer-ring-container svg {
+  transform: rotate(-90deg);
+  width: 160px;
+  height: 160px;
+}
+.timer-ring-bg {
+  fill: none;
+  stroke: var(--surface);
+  stroke-width: 6;
+}
+.timer-ring-progress {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+.timer-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buttons */
+.btn-start {
+  width: 100%;
+  max-width: 300px;
+  padding: 18px 32px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  margin-bottom: 16px;
+}
+.btn-start:hover { background: var(--primary-dim); }
+.btn-start:active { transform: scale(0.97); }
+.btn-start.running {
+  background: var(--secondary);
+}
+
+/* Settings */
+.settings {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+.setting-group label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chip {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--secondary);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.chip:hover { border-color: var(--primary); }
+.chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* Volume slider */
+.volume-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.volume-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--primary);
+  height: 4px;
+}
+.volume-label {
+  font-size: 13px;
+  color: var(--text-dim);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* Info section */
+.info {
+  margin-top: 32px;
+  padding: 16px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  width: 100%;
+}
+.info summary {
+  font-size: 14px;
+  color: var(--text-dim);
+  cursor: pointer;
+  list-style: none;
+}
+.info summary::before {
+  content: '▸ ';
+}
+.info[open] summary::before {
+  content: '▾ ';
+}
+.info p {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-top: 12px;
+}
+
+/* Hide settings when running */
+.container.running .settings,
+.container.running .info {
+  display: none;
+}
+.container:not(.running) .word-display,
+.container:not(.running) .timer-ring-container {
+  display: none;
+}
+
+/* Interval progress bar (thin bar below word) */
+.interval-bar-container {
+  width: 120px;
+  height: 3px;
+  background: var(--surface);
+  border-radius: 2px;
+  margin-top: 20px;
+  overflow: hidden;
+}
+.interval-bar {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.3s linear;
+}
+</style>
+</head>
+<body>
+
+<div class="container" id="app">
+  <div class="header">
+    <h1>Schlummershuffle</h1>
+    <p>Cognitive Shuffle zum Einschlafen</p>
+  </div>
+
+  <!-- Active session -->
+  <div class="word-display">
+    <div class="current-word" id="currentWord"></div>
+    <div class="category-label" id="categoryLabel"></div>
+    <div class="interval-bar-container">
+      <div class="interval-bar" id="intervalBar"></div>
+    </div>
+  </div>
+
+  <div class="timer-ring-container">
+    <svg viewBox="0 0 160 160">
+      <circle class="timer-ring-bg" cx="80" cy="80" r="72"/>
+      <circle class="timer-ring-progress" id="timerRing" cx="80" cy="80" r="72"
+        stroke-dasharray="452.39" stroke-dashoffset="0"/>
+    </svg>
+    <div class="timer-text" id="timerText">30:00</div>
+  </div>
+
+  <!-- Start / Stop button -->
+  <button class="btn-start" id="btnStart" onclick="toggleSession()">Einschlafen</button>
+
+  <!-- Settings -->
+  <div class="settings">
+    <div class="setting-group">
+      <label>Timer (Minuten)</label>
+      <div class="chip-row" id="timerChips">
+        <button class="chip" data-value="15">15</button>
+        <button class="chip active" data-value="30">30</button>
+        <button class="chip" data-value="45">45</button>
+        <button class="chip" data-value="60">60</button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label>Pause zwischen W&ouml;rtern (Sekunden)</label>
+      <div class="chip-row" id="intervalChips">
+        <button class="chip" data-value="5">5</button>
+        <button class="chip active" data-value="8">8</button>
+        <button class="chip" data-value="10">10</button>
+        <button class="chip" data-value="15">15</button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label>Lautst&auml;rke</label>
+      <div class="volume-row">
+        <input type="range" id="volumeSlider" min="0" max="100" value="70">
+        <span class="volume-label" id="volumeLabel">70%</span>
+      </div>
+    </div>
+  </div>
+
+  <details class="info">
+    <summary>Was ist der Cognitive Shuffle?</summary>
+    <p>
+      Der Cognitive Shuffle ist eine Einschlaftechnik von Dr. Luc P. Beaudoin.
+      Du stellst dir in rascher Abfolge zuf&auml;llige, zusammenhanglose Bilder vor
+      &ndash; alle paar Sekunden ein neues. Das ahmt das nat&uuml;rliche Denkmuster
+      vor dem Einschlafen nach und unterbricht Gr&uuml;belschleifen.<br><br>
+      Schlummershuffle spricht dir alle paar Sekunden ein deutsches Wort vor. Stell dir
+      einfach das Gesprochene bildlich vor &ndash; ohne Zusammenh&auml;nge herzustellen.
+      Die meisten schlafen innerhalb von 10&ndash;15 Minuten ein.
+    </p>
+  </details>
+</div>
+
+<script>
+// === Word lists ===
+const words = {
+  Natur: [
+    'Baum','Berg','See','Wolke','Stein','Blume','Moos','Fels','Wurzel','Gras',
+    'Pilz','Blatt','Ast','Rinde','Quelle','Farn','Kiesel','Muschel','Feder','Bernstein',
+    'Koralle','Kristall','Tropfen','Welle','Schatten','Lichtung','Nebel','Tau','Regenbogen','Horizont'
+  ],
+  Tiere: [
+    'Katze','Delfin','Eule','Schmetterling','Igel','Schildkroete','Pinguin','Seepferdchen',
+    'Flamingo','Koala','Waschbaer','Otter','Reh','Marienkaefer','Libelle','Kolibri',
+    'Schnecke','Seestern','Fuchs','Hase','Krabbe','Papagei','Faultier','Biber',
+    'Robbe','Gecko','Chamäleon','Eisvogel','Goldfisch','Glühwürmchen'
+  ],
+  Lebensmittel: [
+    'Apfel','Brot','Kaese','Kirsche','Honig','Erdbeere','Traube','Zimt',
+    'Olive','Mango','Walnuss','Birne','Mandel','Himbeere','Vanille','Pfirsich',
+    'Brombeere','Feige','Ingwer','Kiwi','Melone','Orange','Pflaume','Rosine',
+    'Blaubeere','Dattel','Kokosnuss','Pistazie','Banane','Ananas'
+  ],
+  Haushalt: [
+    'Kissen','Lampe','Tasse','Decke','Kerze','Buch','Schuessel','Vase',
+    'Spiegel','Truhe','Korb','Teppich','Hocker','Regal','Dose','Krug',
+    'Flasche','Glocke','Rahmen','Laterne','Schale','Tablett','Windlicht','Teekanne',
+    'Kanne','Stuhl','Kommode','Vorhang','Gardine','Leselampe'
+  ],
+  Kleidung: [
+    'Schal','Muetze','Handschuh','Stiefel','Hut','Mantel','Socke','Pullover',
+    'Weste','Sandalen','Schleife','Guertel','Kappe','Schuhe','Jacke','Kleid',
+    'Hemd','Poncho','Pantoffeln','Faeustlinge'
+  ],
+  Pflanzen: [
+    'Sonnenblume','Kaktus','Efeu','Loewenzahn','Tulpe','Lavendel','Bambus',
+    'Orchidee','Gänseblümchen','Rose','Lilie','Klee','Veilchen','Distel',
+    'Hyazinthe','Jasmin','Nelke','Dahlie','Vergissmeinnicht','Primel'
+  ],
+  Landschaft: [
+    'Wiese','Huegel','Tal','Pfad','Insel','Strand','Düne','Klippe',
+    'Grotte','Höhle','Schlucht','Ufer','Hafen','Brücke','Steg','Allee',
+    'Garten','Park','Feld','Lichtung'
+  ],
+  Gebaeude: [
+    'Leuchtturm','Mühle','Turm','Kapelle','Scheune','Pavillon','Hütte',
+    'Schloss','Brunnen','Tor','Bogen','Treppe','Balkon','Terrasse','Kuppel',
+    'Gewölbe','Arkade','Pergola','Ruine','Tempel'
+  ],
+  Himmel: [
+    'Stern','Mond','Komet','Sonne','Planet','Galaxie','Nordlicht',
+    'Sternschnuppe','Halbmond','Morgenrot','Abendrot','Milchstrasse',
+    'Vollmond','Mondschein','Daemmerung'
+  ],
+  Musik: [
+    'Flöte','Trommel','Harfe','Geige','Glockenspiel','Klavier','Gitarre',
+    'Triangel','Mundharmonika','Xylophon','Tambourin','Zither','Orgel',
+    'Cello','Dudelsack'
+  ],
+  Material: [
+    'Seide','Wolle','Holz','Glas','Ton','Leinen','Samt','Kupfer',
+    'Marmor','Porzellan','Keramik','Papier','Leder','Baumwolle','Filz'
+  ],
+  Handwerk: [
+    'Pinsel','Nadel','Hammer','Schere','Faden','Stift','Spindel',
+    'Webrahmen','Palette','Staffelei','Meißel','Töpferscheibe','Stempel',
+    'Knopf','Perle'
+  ],
+  Garten: [
+    'Schaukel','Zaun','Laterne','Gießkanne','Vogelhäuschen','Bank',
+    'Sonnenuhr','Windspiel','Hecke','Rasen','Beet','Teich','Springbrunnen',
+    'Gartentor','Rankgitter'
+  ],
+  Wetter: [
+    'Schneeflocke','Regentropfen','Windstille','Raureif','Eiszapfen',
+    'Nieselregen','Sonnenschein','Wolkenbruch','Morgentau','Abendnebel',
+    'Windhauch','Schneedecke','Lichtstrahl','Pfütze','Reif'
+  ],
+  Gewaesser: [
+    'Teich','Bach','Wasserfall','Fluss','Lagune','Riff','Bucht',
+    'Fjord','Meeresbucht','Geysir','Wildbach','Stausee','Tümpel',
+    'Gezeitenbecken','Brandung'
+  ]
+};
+
+// Flatten for counting
+const allCategories = Object.keys(words);
+const totalWords = Object.values(words).reduce((sum, arr) => sum + arr.length, 0);
+
+// === State ===
+let running = false;
+let timerMinutes = 30;
+let intervalSeconds = 8;
+let volume = 0.7;
+let timerRemaining = 0;
+let timerTotal = 0;
+let timerInterval = null;
+let wordTimeout = null;
+let recentWords = [];
+let recentCategories = [];
+let synth = window.speechSynthesis;
+let selectedVoice = null;
+
+// === DOM refs ===
+const app = document.getElementById('app');
+const btnStart = document.getElementById('btnStart');
+const currentWordEl = document.getElementById('currentWord');
+const categoryLabelEl = document.getElementById('categoryLabel');
+const timerRing = document.getElementById('timerRing');
+const timerText = document.getElementById('timerText');
+const intervalBar = document.getElementById('intervalBar');
+const volumeSlider = document.getElementById('volumeSlider');
+const volumeLabel = document.getElementById('volumeLabel');
+
+// === TTS setup ===
+let ttsUnlocked = false;
+let ttsAvailable = false;
+let chromePauseWorkaround = null;
+
+function findGermanVoice() {
+  const voices = synth.getVoices();
+  console.log('Available voices:', voices.map(v => v.lang + ' ' + v.name));
+  // Prefer a local German voice, then any German voice
+  let voice = voices.find(v => v.lang.startsWith('de') && v.localService);
+  if (!voice) voice = voices.find(v => v.lang.startsWith('de'));
+  if (voice) console.log('Selected voice:', voice.lang, voice.name);
+  else console.warn('No German voice found!');
+  return voice || null;
+}
+
+// Voices load async in some browsers
+if (synth.onvoiceschanged !== undefined) {
+  synth.onvoiceschanged = () => { selectedVoice = findGermanVoice(); };
+}
+// Also try sync
+selectedVoice = findGermanVoice();
+
+// Unlock TTS with a user gesture (called directly from click handler)
+function unlockTTS() {
+  if (ttsUnlocked) return;
+  // Short silent utterance to unlock audio context
+  const utter = new SpeechSynthesisUtterance('');
+  utter.volume = 0;
+  utter.lang = 'de-DE';
+  if (selectedVoice) utter.voice = selectedVoice;
+  synth.speak(utter);
+  ttsUnlocked = true;
+  console.log('TTS unlocked via user gesture');
+}
+
+function speak(text, vol) {
+  // Re-check voice if not found yet
+  if (!selectedVoice) selectedVoice = findGermanVoice();
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'de-DE';
+  if (selectedVoice) utter.voice = selectedVoice;
+  utter.rate = 0.85;
+  utter.pitch = 0.95;
+  utter.volume = vol;
+  utter.onstart = () => { ttsAvailable = true; };
+  utter.onerror = (e) => { console.error('TTS error:', e.error); };
+
+  // Cancel previous, then wait a tick before speaking (Chromium fix)
+  synth.cancel();
+  setTimeout(() => { synth.speak(utter); }, 50);
+}
+
+// Chrome pauses speechSynthesis after ~15s; workaround: periodically resume
+function startChromePauseWorkaround() {
+  stopChromePauseWorkaround();
+  chromePauseWorkaround = setInterval(() => {
+    if (running && synth.speaking) synth.resume();
+  }, 5000);
+}
+function stopChromePauseWorkaround() {
+  if (chromePauseWorkaround) { clearInterval(chromePauseWorkaround); chromePauseWorkaround = null; }
+}
+
+// === Chip selectors ===
+function setupChips(containerId, callback) {
+  const container = document.getElementById(containerId);
+  container.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      container.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      callback(parseInt(chip.dataset.value));
+    });
+  });
+}
+setupChips('timerChips', v => { timerMinutes = v; });
+setupChips('intervalChips', v => { intervalSeconds = v; });
+
+volumeSlider.addEventListener('input', () => {
+  volume = volumeSlider.value / 100;
+  volumeLabel.textContent = volumeSlider.value + '%';
+});
+
+// === Word selection ===
+function pickWord() {
+  // Pick category different from last 3
+  let availCats = allCategories.filter(c => !recentCategories.includes(c));
+  if (availCats.length === 0) availCats = allCategories;
+  const cat = availCats[Math.floor(Math.random() * availCats.length)];
+
+  // Pick word not in recent 50 and different starting letter
+  const lastWord = recentWords.length > 0 ? recentWords[recentWords.length - 1] : '';
+  const lastLetter = lastWord ? lastWord[0].toLowerCase() : '';
+  let pool = words[cat].filter(w =>
+    !recentWords.includes(w) && w[0].toLowerCase() !== lastLetter
+  );
+  if (pool.length === 0) {
+    pool = words[cat].filter(w => !recentWords.includes(w));
+  }
+  if (pool.length === 0) {
+    pool = words[cat];
+    recentWords = [];
+  }
+  const word = pool[Math.floor(Math.random() * pool.length)];
+
+  recentWords.push(word);
+  if (recentWords.length > 50) recentWords.shift();
+  recentCategories.push(cat);
+  if (recentCategories.length > 3) recentCategories.shift();
+
+  return { word, category: cat };
+}
+
+// === Timer ===
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function updateTimerDisplay() {
+  timerText.textContent = formatTime(timerRemaining);
+  const circumference = 2 * Math.PI * 72; // 452.39
+  const progress = timerTotal > 0 ? timerRemaining / timerTotal : 1;
+  timerRing.style.strokeDashoffset = circumference * (1 - progress);
+}
+
+// === Fade out volume in last 60s ===
+function getEffectiveVolume() {
+  if (timerRemaining <= 60 && timerTotal > 60) {
+    return volume * (timerRemaining / 60);
+  }
+  return volume;
+}
+
+// === Session control ===
+function showWord() {
+  if (!running) return;
+
+  const { word, category } = pickWord();
+
+  // Speak immediately (with cancel+delay fix inside speak())
+  const effVol = getEffectiveVolume();
+  if (effVol > 0.02) {
+    speak(word, effVol);
+  }
+
+  // Fade out old word
+  currentWordEl.classList.remove('visible');
+  currentWordEl.classList.add('fading');
+  categoryLabelEl.classList.remove('visible');
+
+  setTimeout(() => {
+    currentWordEl.textContent = word;
+    categoryLabelEl.textContent = category;
+    currentWordEl.classList.remove('fading');
+
+    requestAnimationFrame(() => {
+      currentWordEl.classList.add('visible');
+      categoryLabelEl.classList.add('visible');
+    });
+  }, 300);
+
+  // Interval bar animation
+  intervalBar.style.transition = 'none';
+  intervalBar.style.width = '100%';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      intervalBar.style.transition = `width ${intervalSeconds}s linear`;
+      intervalBar.style.width = '0%';
+    });
+  });
+
+  wordTimeout = setTimeout(showWord, intervalSeconds * 1000);
+}
+
+function startSession() {
+  running = true;
+  app.classList.add('running');
+  btnStart.textContent = 'Stoppen';
+  btnStart.classList.add('running');
+
+  recentWords = [];
+  recentCategories = [];
+
+  timerTotal = timerMinutes * 60;
+  timerRemaining = timerTotal;
+  updateTimerDisplay();
+
+  startChromePauseWorkaround();
+
+  // Start timer countdown
+  timerInterval = setInterval(() => {
+    timerRemaining--;
+    updateTimerDisplay();
+    if (timerRemaining <= 0) stopSession();
+  }, 1000);
+
+  // Start first word after a short pause
+  wordTimeout = setTimeout(showWord, 1500);
+}
+
+function stopSession() {
+  running = false;
+  app.classList.remove('running');
+  btnStart.textContent = 'Einschlafen';
+  btnStart.classList.remove('running');
+
+  synth.cancel();
+  stopChromePauseWorkaround();
+  clearInterval(timerInterval);
+  clearTimeout(wordTimeout);
+  timerInterval = null;
+  wordTimeout = null;
+
+  currentWordEl.classList.remove('visible');
+  categoryLabelEl.classList.remove('visible');
+}
+
+function toggleSession() {
+  // Unlock TTS directly in click handler (user gesture context!)
+  unlockTTS();
+
+  if (running) {
+    stopSession();
+  } else {
+    startSession();
+  }
+}
+
+// Keep screen awake via Wake Lock API (if available)
+let wakeLock = null;
+async function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } catch (e) { /* ignore */ }
+  }
+}
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock = null; }
+}
+
+// Override start/stop to manage wake lock
+const _startSession = startSession;
+startSession = function() {
+  _startSession();
+  requestWakeLock();
+};
+const _stopSession = stopSession;
+stopSession = function() {
+  _stopSession();
+  releaseWakeLock();
+};
+</script>
+</body>
+</html>
