@@ -378,6 +378,22 @@ body {
         <span class="volume-label" id="volumeLabel">70%</span>
       </div>
     </div>
+
+    <div class="setting-group">
+      <label>Geschwindigkeit</label>
+      <div class="volume-row">
+        <input type="range" id="rateSlider" min="50" max="150" value="85">
+        <span class="volume-label" id="rateLabel">85%</span>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label>Tonh&ouml;he</label>
+      <div class="volume-row">
+        <input type="range" id="pitchSlider" min="50" max="150" value="95">
+        <span class="volume-label" id="pitchLabel">95%</span>
+      </div>
+    </div>
   </div>
 
   <details class="info">
@@ -485,6 +501,8 @@ let running = false;
 let timerMinutes = 30;
 let intervalSeconds = 8;
 let volume = 0.7;
+let speechRate = 0.85;
+let speechPitch = 0.95;
 let timerRemaining = 0;
 let timerTotal = 0;
 let timerInterval = null;
@@ -504,6 +522,10 @@ const timerText = document.getElementById('timerText');
 const intervalBar = document.getElementById('intervalBar');
 const volumeSlider = document.getElementById('volumeSlider');
 const volumeLabel = document.getElementById('volumeLabel');
+const rateSlider = document.getElementById('rateSlider');
+const rateLabel = document.getElementById('rateLabel');
+const pitchSlider = document.getElementById('pitchSlider');
+const pitchLabel = document.getElementById('pitchLabel');
 
 // === TTS setup ===
 let ttsUnlocked = false;
@@ -576,8 +598,8 @@ function speak(text, vol) {
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'de-DE';
   if (selectedVoice) utter.voice = selectedVoice;
-  utter.rate = 0.85;
-  utter.pitch = 0.95;
+  utter.rate = speechRate;
+  utter.pitch = speechPitch;
   utter.volume = vol;
   utter.onerror = (e) => { console.error('TTS error:', e.error); };
 
@@ -614,6 +636,16 @@ setupChips('intervalChips', v => { intervalSeconds = v; });
 volumeSlider.addEventListener('input', () => {
   volume = volumeSlider.value / 100;
   volumeLabel.textContent = volumeSlider.value + '%';
+});
+
+rateSlider.addEventListener('input', () => {
+  speechRate = rateSlider.value / 100;
+  rateLabel.textContent = rateSlider.value + '%';
+});
+
+pitchSlider.addEventListener('input', () => {
+  speechPitch = pitchSlider.value / 100;
+  pitchLabel.textContent = pitchSlider.value + '%';
 });
 
 // === Word selection ===
