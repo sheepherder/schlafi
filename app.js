@@ -1,4 +1,4 @@
-const allCategories = Object.keys(words);
+const ARTICLE = { m: 'ein', f: 'eine', n: 'ein' };
 
 // ── State ──
 let running = false;
@@ -13,14 +13,12 @@ let timerDeadline = 0;
 let timerInterval = null;
 let wordTimeout = null;
 let recentWords = [];
-let recentCategories = [];
 let selectedVoice = null;
 
 // ── DOM ──
 const app = document.getElementById('app');
 const btnStart = document.getElementById('btnStart');
 const currentWordEl = document.getElementById('currentWord');
-const categoryLabelEl = document.getElementById('categoryLabel');
 const timerRing = document.getElementById('timerRing');
 const timerText = document.getElementById('timerText');
 const intervalBar = document.getElementById('intervalBar');
@@ -160,23 +158,15 @@ pitchSlider.addEventListener('input', () => {
 
 // ── Word selection ──
 function pickWord() {
-  let availCats = allCategories.filter(c => !recentCategories.includes(c));
-  if (availCats.length === 0) availCats = allCategories;
-  const cat = availCats[Math.floor(Math.random() * availCats.length)];
-
-  const lastWord = recentWords.length > 0 ? recentWords[recentWords.length - 1] : '';
-  const lastLetter = lastWord ? lastWord[0].toLowerCase() : '';
-  let pool = words[cat].filter(w => !recentWords.includes(w) && w[0].toLowerCase() !== lastLetter);
-  if (pool.length === 0) pool = words[cat].filter(w => !recentWords.includes(w));
-  if (pool.length === 0) { pool = words[cat]; recentWords = []; }
-  const word = pool[Math.floor(Math.random() * pool.length)];
-
-  recentWords.push(word);
+  const last = recentWords.length > 0 ? recentWords[recentWords.length - 1] : null;
+  const lastLetter = last ? last[1][0].toLowerCase() : '';
+  let pool = words.filter(w => !recentWords.includes(w) && w[1][0].toLowerCase() !== lastLetter);
+  if (pool.length === 0) pool = words.filter(w => !recentWords.includes(w));
+  if (pool.length === 0) { pool = words; recentWords = []; }
+  const entry = pool[Math.floor(Math.random() * pool.length)];
+  recentWords.push(entry);
   if (recentWords.length > 50) recentWords.shift();
-  recentCategories.push(cat);
-  if (recentCategories.length > 3) recentCategories.shift();
-
-  return { word, category: cat };
+  return entry;
 }
 
 // ── Timer ──
@@ -202,21 +192,20 @@ function getEffectiveVolume() {
 function showWord() {
   if (!running) return;
 
-  const { word, category } = pickWord();
+  const [genus, noun] = pickWord();
+  const article = ARTICLE[genus];
+  const display = article + ' ' + noun;
   const effVol = getEffectiveVolume();
-  if (effVol > 0.02) speak(word, effVol);
+  if (effVol > 0.02) speak(display, effVol);
 
   currentWordEl.classList.remove('visible');
   currentWordEl.classList.add('fading');
-  categoryLabelEl.classList.remove('visible');
 
   setTimeout(() => {
-    currentWordEl.textContent = word;
-    categoryLabelEl.textContent = category;
+    currentWordEl.textContent = display;
     currentWordEl.classList.remove('fading');
     requestAnimationFrame(() => {
       currentWordEl.classList.add('visible');
-      categoryLabelEl.classList.add('visible');
     });
   }, 300);
 
@@ -239,7 +228,6 @@ function startSession() {
   btnStart.classList.add('running');
 
   recentWords = [];
-  recentCategories = [];
 
   timerTotal = timerMinutes * 60;
   timerDeadline = Date.now() + timerTotal * 1000;
@@ -273,7 +261,6 @@ function stopSession() {
   wordTimeout = null;
 
   currentWordEl.classList.remove('visible');
-  categoryLabelEl.classList.remove('visible');
 
   releaseWakeLock();
 }

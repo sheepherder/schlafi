@@ -720,47 +720,50 @@ fuer die Standardwortliste.
 
 ## 10. Wortlisten-Generierung
 
-### Kategorien fuer deutsche Woerter
+### Implementierter Ansatz: Korpusbasierte Frequenzliste
 
-| Kategorie | Beispiele | Anzahl (Ziel) |
-|---|---|---|
-| Natur | Baum, Berg, See, Wolke, Stein, Blume | 30+ |
-| Tiere | Katze, Delfin, Eule, Schmetterling, Igel | 30+ |
-| Lebensmittel | Apfel, Brot, Kaese, Kirsche, Honig | 30+ |
-| Haushalt | Kissen, Lampe, Tasse, Decke, Kerze | 30+ |
-| Kleidung | Schal, Muetze, Handschuh, Stiefel | 20+ |
-| Wetter | Regenbogen, Schnee, Nebel, Tau | 15+ |
-| Pflanzen | Sonnenblume, Kaktus, Efeu, Moos | 20+ |
-| Gewaesser | Teich, Bach, Wasserfall, Quelle | 15+ |
-| Landschaft | Wiese, Huegel, Tal, Lichtung, Pfad | 20+ |
-| Gebaeude | Leuchtturm, Muehle, Bruecke, Turm | 20+ |
-| Musik | Floete, Trommel, Harfe, Geige | 15+ |
-| Himmel | Stern, Mond, Komet, Wolke | 15+ |
-| Handwerk | Pinsel, Nadel, Hammer, Schere | 15+ |
-| Material | Seide, Wolle, Holz, Glas, Ton | 15+ |
-| Garten | Schaukel, Zaun, Brunnen, Laterne | 15+ |
+Statt manuell kuratierter Kategorien wird die Wortliste automatisch aus drei Datenquellen
+generiert (siehe `scripts/build_wordlist.py`):
 
-**Ziel: Mindestens 300--500 Woerter** in 15+ Kategorien, um keine merkbare Wiederholung
-in einer 30-Minuten-Sitzung zu haben. (mySleepButton wird kritisiert fuer Wiederholungen
-nach nur 5 Minuten!)
+1. **Wortfrequenz**: hermitdave/FrequencyWords (OpenSubtitles-Korpus, ~1.2M Woerter)
+2. **Substantive + Genus**: gambolputty/german-nouns (Wiktionary-Extrakt, ~87K Lemmata)
+3. **Psycholinguistische Bewertungen**: German Psycholinguistic Toolbox (Brysbaert et al.,
+   osf.io/ghjd2, 167K Woerter mit Konkretheit, Valenz, Arousal)
+
+**Filter** (Skala jeweils 1--7):
+- Konkretheit >= 5.8 (gut vorstellbar)
+- Valenz >= 3.5 (nicht negativ/bedrohlich)
+- Arousal <= 4.0 (beruhigend, nicht aufregend)
+- Nur reine Substantive (pos == "Substantiv" exakt, keine Toponyme, Affixe etc.)
+- Ausschluss nominalisierter Infinitive (Neutrum + -en, z.B. "das Gehen")
+- Ausschluss falscher Substantive (primaer Adverbien/Adjektive/Verben)
+
+**Ergebnis**: ~3400 konkrete, neutrale, beruhigende Substantive mit Genus, sortiert nach
+Haeufigkeit. Woerter werden mit unbestimmtem Artikel vorgelesen ("ein Haus", "eine Katze").
 
 ### Algorithmus
 
 ```
-Eingabe: Wortlisten nach Kategorien, Historie der letzten 50 Woerter
+Eingabe: Flache Liste von [genus, wort]-Paaren, Historie der letzten 50 Woerter
 
-1. WAEHLE zufaellige Kategorie K (unterschiedlich zu den letzten 3 Kategorien)
-2. WAEHLE zufaelliges Wort W aus K, das:
+1. WAEHLE zufaelliges Wort W, das:
    a. NICHT in den letzten 50 gesprochenen Woertern vorkommt
    b. NICHT mit dem gleichen Buchstaben beginnt wie das vorherige Wort
-   c. NICHT in der gleichen Unterkategorie wie das vorherige Wort
-3. SPRECHE Wort W ueber TTS
-4. WARTE [konfigurierbares Intervall, Standard: 8 Sekunden]
+2. BILDE Artikel aus Genus (m/n -> "ein", f -> "eine")
+3. SPRECHE "ein Haus" / "eine Katze" ueber TTS
+4. WARTE [konfigurierbares Intervall, Standard: 20 Sekunden]
 5. SPEICHERE W in Historie
 6. WIEDERHOLE bis Timer abgelaufen oder Nutzer stoppt
 ```
 
-### Erweiterter Algorithmus (DIY-Modus)
+### Fruehere Ueberlegung: Kategorien
+
+Die urspruengliche Planung sah manuell kuratierte Kategorien vor (Natur, Tiere,
+Lebensmittel etc.). Dieser Ansatz wurde zugunsten der korpusbasierten Methode verworfen,
+da sie reproduzierbar ist, auf echten Frequenzdaten basiert, und die psycholinguistischen
+Filter (Valenz, Arousal) eine manuelle Blocklist weitgehend ersetzen.
+
+### Fruehere Ueberlegung: Erweiterter Algorithmus (DIY-Modus)
 
 ```
 1. GENERIERE zufaelliges deutsches Startwort (5--8 Buchstaben, neutral)

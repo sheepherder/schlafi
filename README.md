@@ -4,11 +4,11 @@
 
 Eine Web-App, die mit der **Cognitive Shuffle**-Technik beim Einschlafen hilft.
 
-Alle paar Sekunden wird ein zufälliges deutsches Wort vorgelesen. Du stellst dir das Wort bildlich vor -- ohne Zusammenhänge herzustellen. Das unterbricht Grübelschleifen und ahmt das natürliche Denkmuster vor dem Einschlafen nach. Die meisten schlafen innerhalb von 10--15 Minuten ein.
+Alle paar Sekunden wird ein zufälliges deutsches Wort mit Artikel vorgelesen ("ein Haus", "eine Katze"). Du stellst dir das Wort bildlich vor -- ohne Zusammenhänge herzustellen. Das unterbricht Grübelschleifen und ahmt das natürliche Denkmuster vor dem Einschlafen nach. Die meisten schlafen innerhalb von 10--15 Minuten ein.
 
 ## Features
 
-- ~3400 deutsche Wörter in 40 Kategorien (Natur, Tiere, Lebensmittel, ...)
+- ~3400 konkrete deutsche Substantive mit Artikel, frequenzsortiert aus Korpusdaten
 - Text-to-Speech mit wählbarer Stimme, Geschwindigkeit, Tonhöhe und Lautstärke
 - Timer (15, 30, 45, 60 min) mit sanftem Lautstärke-Fadeout in der letzten Minute
 - Wortpause einstellbar (5, 8, 10, 15, 20 Sekunden)
@@ -38,7 +38,8 @@ Kein Build nötig. Push auf `main` deployt automatisch via GitHub Actions.
 | `index.html` | HTML-Markup |
 | `style.css` | Styles |
 | `app.js` | Anwendungslogik |
-| `words.js` | Wortlisten (~3400 Wörter, 40 Kategorien) |
+| `words.js` | Wortliste (~3400 Substantive mit Genus, frequenzsortiert) |
+| `scripts/build_wordlist.py` | Generiert `words.js` aus Korpusdaten (Frequenz, Genus, Konkretheit, Valenz, Arousal) |
 
 ## Wissenschaftlicher Hintergrund
 
