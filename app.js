@@ -1,4 +1,5 @@
 const ARTICLE = { m: 'ein', f: 'eine', n: 'ein' };
+const CIRCUMFERENCE = 2 * Math.PI * 64; // matches r="64" in SVG
 
 // ── State ──
 let running = false;
@@ -11,7 +12,7 @@ let timerRemaining = 0;
 let timerTotal = 0;
 let timerDeadline = 0;
 let timerInterval = null;
-let wordTimeout = null;
+let nextWordTime = 0;
 let recentWords = [];
 let selectedVoice = null;
 
@@ -20,6 +21,7 @@ const app = document.getElementById('app');
 const btnStart = document.getElementById('btnStart');
 const currentWordEl = document.getElementById('currentWord');
 const timerRing = document.getElementById('timerRing');
+timerRing.setAttribute('stroke-dasharray', CIRCUMFERENCE);
 const timerText = document.getElementById('timerText');
 const intervalBar = document.getElementById('intervalBar');
 const volumeSlider = document.getElementById('volumeSlider');
@@ -143,18 +145,15 @@ setupChips('timerChips', v => { timerMinutes = v; });
 setupChips('intervalChips', v => { intervalSeconds = v; });
 
 // ── Sliders ──
-volumeSlider.addEventListener('input', () => {
-  volume = volumeSlider.value / 100;
-  volumeLabel.textContent = volumeSlider.value + '%';
-});
-rateSlider.addEventListener('input', () => {
-  speechRate = rateSlider.value / 100;
-  rateLabel.textContent = rateSlider.value + '%';
-});
-pitchSlider.addEventListener('input', () => {
-  speechPitch = pitchSlider.value / 100;
-  pitchLabel.textContent = pitchSlider.value + '%';
-});
+function setupSlider(slider, label, callback) {
+  slider.addEventListener('input', () => {
+    callback(slider.value / 100);
+    label.textContent = slider.value + '%';
+  });
+}
+setupSlider(volumeSlider, volumeLabel, v => { volume = v; });
+setupSlider(rateSlider, rateLabel, v => { speechRate = v; });
+setupSlider(pitchSlider, pitchLabel, v => { speechPitch = v; });
 
 // ── Word selection ──
 function pickWord() {
@@ -178,9 +177,8 @@ function formatTime(seconds) {
 
 function updateTimerDisplay() {
   timerText.textContent = formatTime(timerRemaining);
-  const circumference = 2 * Math.PI * 64; // 402.12
   const progress = timerTotal > 0 ? timerRemaining / timerTotal : 1;
-  timerRing.style.strokeDashoffset = circumference * (1 - progress);
+  timerRing.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
 }
 
 function getEffectiveVolume() {
@@ -218,13 +216,12 @@ function showWord() {
     });
   });
 
-  wordTimeout = setTimeout(showWord, intervalSeconds * 1000);
 }
 
 function startSession() {
   running = true;
   app.classList.add('running');
-  btnStart.textContent = 'Stoppen';
+  btnStart.lastChild.textContent = 'Stoppen';
   btnStart.classList.add('running');
 
   recentWords = [];
@@ -236,13 +233,19 @@ function startSession() {
 
   startChromePauseWorkaround();
 
+  nextWordTime = Date.now() + 1500;
   timerInterval = setInterval(() => {
-    timerRemaining = Math.max(0, Math.round((timerDeadline - Date.now()) / 1000));
+    const now = Date.now();
+    timerRemaining = Math.max(0, Math.round((timerDeadline - now) / 1000));
     updateTimerDisplay();
-    if (timerRemaining <= 0) stopSession();
+    if (timerRemaining <= 0) { stopSession(); return; }
+    if (now >= nextWordTime) {
+      showWord();
+      const intervalMs = intervalSeconds * 1000;
+      nextWordTime += intervalMs;
+      if (nextWordTime <= now) nextWordTime = now + intervalMs;
+    }
   }, 1000);
-
-  wordTimeout = setTimeout(showWord, 1500);
 
   requestWakeLock();
 }
@@ -250,15 +253,14 @@ function startSession() {
 function stopSession() {
   running = false;
   app.classList.remove('running');
-  btnStart.textContent = 'Einschlafen';
+  btnStart.lastChild.textContent = 'Einschlafen';
   btnStart.classList.remove('running');
 
   if (ttsAvailable) synth.cancel();
   stopChromePauseWorkaround();
   clearInterval(timerInterval);
-  clearTimeout(wordTimeout);
   timerInterval = null;
-  wordTimeout = null;
+  nextWordTime = 0;
 
   currentWordEl.classList.remove('visible');
 

@@ -349,17 +349,10 @@ h1 {
   outline: 2px solid var(--acc);
   outline-offset: 2px;
 }
-.chip:focus-visible {
-  outline: 2px solid var(--acc);
-  outline-offset: 2px;
-}
 .voice-row select:focus-visible {
-  outline: 2px solid var(--acc);
-  outline-offset: 2px;
   border-color: var(--acc);
 }
 .btn-start:focus-visible {
-  outline: 2px solid var(--acc);
   outline-offset: 3px;
 }
 
@@ -387,4 +380,7 @@ h1 {
 }
 .container.running {
   align-items: center;
+}
+body:has(.container.running)::before {
+  animation-play-state: paused;
 }
