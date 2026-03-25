@@ -19,6 +19,7 @@ let selectedVoice = null;
 // ── DOM ──
 const app = document.getElementById('app');
 const btnStart = document.getElementById('btnStart');
+const btnStartLabel = btnStart.querySelector('span');
 const currentWordEl = document.getElementById('currentWord');
 const timerRing = document.getElementById('timerRing');
 timerRing.setAttribute('stroke-dasharray', CIRCUMFERENCE);
@@ -221,7 +222,7 @@ function showWord() {
 function startSession() {
   running = true;
   app.classList.add('running');
-  btnStart.lastChild.textContent = 'Stoppen';
+  btnStartLabel.textContent = 'Stoppen';
   btnStart.classList.add('running');
 
   recentWords = [];
@@ -253,7 +254,7 @@ function startSession() {
 function stopSession() {
   running = false;
   app.classList.remove('running');
-  btnStart.lastChild.textContent = 'Einschlafen';
+  btnStartLabel.textContent = 'Einschlafen';
   btnStart.classList.remove('running');
 
   if (ttsAvailable) synth.cancel();
