@@ -108,11 +108,20 @@ def synthesize(ssml, voice_name, api_key, max_retries=5):
         },
     }
     for attempt in range(max_retries):
-        resp = requests.post(
-            f"{API_URL}?key={api_key}",
-            json=body,
-            timeout=30,
-        )
+        try:
+            resp = requests.post(
+                f"{API_URL}?key={api_key}",
+                json=body,
+                timeout=30,
+            )
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries - 1:
+                wait = 2 ** attempt
+                print(f"  Network error, retrying in {wait}s... ({e.__class__.__name__})", file=sys.stderr)
+                time.sleep(wait)
+                continue
+            print(f"  Network error: {e}", file=sys.stderr)
+            return None
         if resp.status_code == 200:
             audio_b64 = resp.json()["audioContent"]
             return base64.b64decode(audio_b64)

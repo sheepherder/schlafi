@@ -305,6 +305,7 @@ function showWord() {
 }
 
 function startSession() {
+  if (window.goatcounter) window.goatcounter.count({ path: '/start', event: true });
   running = true;
   app.classList.add('running');
   btnStartLabel.textContent = 'Stoppen';
