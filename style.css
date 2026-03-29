@@ -226,6 +226,7 @@ h1 {
   box-shadow: 0 0 40px rgba(212,164,106,0.22);
 }
 .btn-start:active { transform: scale(0.98); }
+.btn-start:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-start svg {
   vertical-align: -3px;
   margin-right: 8px;

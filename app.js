@@ -1,6 +1,9 @@
 const ARTICLE = { m: 'ein', f: 'eine', n: 'ein' };
 const CIRCUMFERENCE = 2 * Math.PI * 64; // matches r="64" in SVG
 
+// Pre-rendered voices (best first). Keep in sync with scripts/generate_audio.py:VOICES
+const PRERENDERED_VOICES = ['enceladus', 'sadachbia', 'sadaltager', 'charon'];
+
 // ── State ──
 let running = false;
 let timerMinutes = parseInt(document.querySelector('#timerChips .chip.active').dataset.value);
@@ -15,6 +18,8 @@ let timerInterval = null;
 let nextWordTime = 0;
 let recentWords = [];
 let selectedVoice = null;
+let availablePrerendered = []; // voices confirmed to have audio files
+let activeAudio = null; // currently playing Audio element
 
 // ── DOM ──
 const app = document.getElementById('app');
@@ -32,7 +37,7 @@ const rateLabel = document.getElementById('rateLabel');
 const pitchSlider = document.getElementById('pitchSlider');
 const pitchLabel = document.getElementById('pitchLabel');
 
-// ── TTS ──
+// ── Voice system (pre-rendered audio + TTS fallback) ──
 const ttsAvailable = 'speechSynthesis' in window;
 let synth = ttsAvailable ? window.speechSynthesis : null;
 let ttsUnlocked = false;
@@ -40,57 +45,117 @@ let chromePauseWorkaround = null;
 let germanVoices = [];
 const voiceSelect = document.getElementById('voiceSelect');
 const noVoicesHint = document.getElementById('noVoicesHint');
+const ttsSettings = document.querySelectorAll('.tts-only');
 
-if (!ttsAvailable) {
-  btnStart.disabled = true;
-  btnStart.style.opacity = '0.5';
-  btnStart.style.cursor = 'not-allowed';
-  const warning = document.createElement('div');
-  warning.className = 'tts-warning';
-  warning.textContent = 'Dein Browser unterst\u00fctzt keine Sprachausgabe (Text-to-Speech). Bitte verwende Chrome, Edge oder Safari.';
-  btnStart.parentNode.insertBefore(warning, btnStart);
-  voiceSelect.innerHTML = '<option value="">Nicht verf\u00fcgbar</option>';
-  voiceSelect.disabled = true;
+function isPrerenderedVoice() {
+  return voiceSelect.value.startsWith('pre:');
 }
 
-function loadVoices() {
-  if (!ttsAvailable) return;
-  const voices = synth.getVoices();
-  germanVoices = voices.filter(v => v.lang.replace('_', '-').startsWith('de'));
+function getPrerenderedName() {
+  return voiceSelect.value.slice(4); // strip 'pre:' prefix
+}
+
+// Keep in sync with scripts/generate_audio.py:make_filename()
+function audioFilename(genus, noun) {
+  const article = ARTICLE[genus];
+  return (article + '_' + noun).toLowerCase().replace(/ /g, '_') + '.opus';
+}
+
+function audioUrl(voice, genus, noun) {
+  return 'audio/' + voice + '/' + audioFilename(genus, noun);
+}
+
+// Probe which pre-rendered voices have audio files by trying to load one
+function probeVoice(voice) {
+  return new Promise(resolve => {
+    const url = audioUrl(voice, words[0][0], words[0][1]);
+    const audio = new Audio();
+    const cleanup = () => { audio.src = ''; };
+    audio.addEventListener('canplaythrough', () => { cleanup(); resolve(voice); }, { once: true });
+    audio.addEventListener('error', () => { cleanup(); resolve(null); }, { once: true });
+    audio.src = url;
+    audio.load();
+  });
+}
+
+async function detectPrerenderedVoices() {
+  const results = await Promise.all(PRERENDERED_VOICES.map(probeVoice));
+  availablePrerendered = results.filter(Boolean);
+}
+
+function updateTTSSettingsVisibility() {
+  const show = !isPrerenderedVoice();
+  ttsSettings.forEach(el => { el.style.display = show ? '' : 'none'; });
+}
+
+async function loadVoices() {
+  await detectPrerenderedVoices();
 
   voiceSelect.innerHTML = '';
-  if (germanVoices.length === 0) {
-    voiceSelect.innerHTML = '<option value="">Keine Stimme gefunden</option>';
-    noVoicesHint.style.display = 'block';
-    selectedVoice = null;
-    return;
-  }
-  noVoicesHint.style.display = 'none';
-  germanVoices.forEach((v, i) => {
+
+  // Add pre-rendered voices first
+  availablePrerendered.forEach(name => {
     const opt = document.createElement('option');
-    opt.value = i;
-    let label = v.name.replace('Google ', '').replace('Android ', '');
-    if (v.localService) label += ' (lokal)';
-    opt.textContent = label;
+    opt.value = 'pre:' + name;
+    opt.textContent = name.charAt(0).toUpperCase() + name.slice(1);
     voiceSelect.appendChild(opt);
   });
-  selectedVoice = germanVoices[0];
+
+  // Add browser TTS voices
+  if (ttsAvailable) {
+    const voices = synth.getVoices();
+    germanVoices = voices.filter(v => v.lang.replace('_', '-').startsWith('de'));
+    germanVoices.forEach((v, i) => {
+      const opt = document.createElement('option');
+      opt.value = 'tts:' + i;
+      let label = v.name.replace('Google ', '').replace('Android ', '');
+      if (v.localService) label += ' (lokal)';
+      opt.textContent = label;
+      voiceSelect.appendChild(opt);
+    });
+  }
+
+  if (voiceSelect.options.length === 0) {
+    voiceSelect.innerHTML = '<option value="">Keine Stimme verf\u00fcgbar</option>';
+    noVoicesHint.style.display = 'block';
+    btnStart.disabled = true;
+    return;
+  }
+
+  noVoicesHint.style.display = 'none';
+  btnStart.disabled = false;
+
+  // Select first pre-rendered voice, or first TTS voice
+  voiceSelect.selectedIndex = 0;
+  applyVoiceSelection();
 }
 
-if (ttsAvailable) {
-  if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
-  loadVoices();
+function applyVoiceSelection() {
+  if (isPrerenderedVoice()) {
+    selectedVoice = null;
+  } else {
+    const idx = parseInt(voiceSelect.value.slice(4)); // strip 'tts:'
+    selectedVoice = germanVoices[idx] || null;
+  }
+  updateTTSSettingsVisibility();
 }
 
-voiceSelect.addEventListener('change', () => {
-  const idx = parseInt(voiceSelect.value);
-  if (!isNaN(idx) && germanVoices[idx]) selectedVoice = germanVoices[idx];
-});
+voiceSelect.addEventListener('change', applyVoiceSelection);
+
+// Load voices: pre-rendered immediately, TTS may arrive async
+loadVoices();
+if (ttsAvailable && synth.onvoiceschanged !== undefined) {
+  synth.onvoiceschanged = loadVoices;
+}
 
 document.getElementById('btnTest').addEventListener('click', () => {
-  if (!ttsAvailable) return;
-  unlockTTS();
-  speak('Schlummershuffle', volume);
+  if (isPrerenderedVoice()) {
+    const word = words[Math.floor(Math.random() * Math.min(20, words.length))];
+    playPrerendered(word[0], word[1], volume);
+  } else if (ttsAvailable) {
+    unlockTTS();
+    speakTTS('Schlummershuffle', volume);
+  }
 });
 
 function unlockTTS() {
@@ -103,7 +168,15 @@ function unlockTTS() {
   ttsUnlocked = true;
 }
 
-function speak(text, vol) {
+function playPrerendered(genus, noun, vol) {
+  if (activeAudio) { activeAudio.pause(); activeAudio.src = ''; }
+  const url = audioUrl(getPrerenderedName(), genus, noun);
+  activeAudio = new Audio(url);
+  activeAudio.volume = vol;
+  activeAudio.play().catch(e => console.error('Audio error:', e));
+}
+
+function speakTTS(text, vol) {
   if (!ttsAvailable) return;
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'de-DE';
@@ -116,9 +189,18 @@ function speak(text, vol) {
   setTimeout(() => { synth.speak(utter); }, 50);
 }
 
+function speak(genus, noun, vol) {
+  if (isPrerenderedVoice()) {
+    playPrerendered(genus, noun, vol);
+  } else {
+    const text = ARTICLE[genus] + ' ' + noun;
+    speakTTS(text, vol);
+  }
+}
+
 function startChromePauseWorkaround() {
   stopChromePauseWorkaround();
-  if (!ttsAvailable) return;
+  if (!ttsAvailable || isPrerenderedVoice()) return;
   chromePauseWorkaround = setInterval(() => {
     if (running && synth.speaking) synth.resume();
   }, 5000);
@@ -195,7 +277,7 @@ function showWord() {
   const article = ARTICLE[genus];
   const display = article + ' ' + noun;
   const effVol = getEffectiveVolume();
-  if (effVol > 0.02) speak(display, effVol);
+  if (effVol > 0.02) speak(genus, noun, effVol);
 
   currentWordEl.classList.remove('visible');
   currentWordEl.classList.add('fading');
@@ -234,7 +316,7 @@ function startSession() {
 
   startChromePauseWorkaround();
 
-  nextWordTime = Date.now() + 1500;
+  nextWordTime = Date.now() + 500;
   timerInterval = setInterval(() => {
     const now = Date.now();
     timerRemaining = Math.max(0, Math.round((timerDeadline - now) / 1000));
@@ -257,6 +339,7 @@ function stopSession() {
   btnStartLabel.textContent = 'Einschlafen';
   btnStart.classList.remove('running');
 
+  if (activeAudio) { activeAudio.pause(); activeAudio.src = ''; activeAudio = null; }
   if (ttsAvailable) synth.cancel();
   stopChromePauseWorkaround();
   clearInterval(timerInterval);
