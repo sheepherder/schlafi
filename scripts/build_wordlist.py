@@ -143,7 +143,7 @@ UNCOUNTABLE = {
     # Sonstige Stoffe
     'öl', 'salz', 'zucker', 'butter', 'honig', 'mehl',
     'staub', 'schnee', 'laub', 'regen', 'nebel', 'rauch',
-    'ketchup', 'essig', 'sahne',
+    'ketchup', 'essig',
     'papier', 'blech', 'erz', 'garn', 'watte', 'pappe',
     'tinte', 'kreide', 'kohle', 'knete', 'hefe', 'mulch', 'humus',
     'salpeter',
@@ -175,7 +175,7 @@ UNCOUNTABLE = {
 UNCOUNTABLE_SUFFIXES = (
     'wasser', 'milch', 'öl', 'mehl', 'salz', 'holz', 'fleisch',
     'creme', 'sahne', 'butter', 'pulver', 'staub', 'zucker',
-    'soße', 'sauce', 'sirup', 'milch', 'glas',  # Panzerglas, Fiberglas
+    'soße', 'sauce', 'sirup', 'glas',  # Panzerglas, Fiberglas
     'gold', 'stahl', 'beton',
     'wachs', 'kohle',  # Holzkohle, Kerzenwachs
     'schnee', 'laub', 'gras',  # Seegras, Herbstlaub
@@ -292,20 +292,9 @@ GENUS_OVERRIDE = {
 }
 
 
-def is_uncountable_compound(word):
-    """Check if a compound word is likely uncountable based on its suffix."""
-    for suffix in UNCOUNTABLE_SUFFIXES:
-        if word.endswith(suffix) and word != suffix and len(word) > len(suffix):
-            return True
-    return False
-
-
-def is_medical_compound(word):
-    """Check if a compound word is likely a medical/anatomical term."""
-    for suffix in MEDICAL_SUFFIXES:
-        if word.endswith(suffix) and word != suffix and len(word) > len(suffix):
-            return True
-    return False
+def has_compound_suffix(word, suffixes):
+    """Check if a compound word ends with one of the given suffixes."""
+    return any(word.endswith(s) and len(word) > len(s) for s in suffixes)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_PATH = os.path.join(os.path.dirname(SCRIPT_DIR), "words.js")
@@ -477,10 +466,10 @@ def main():
         if lower in DUPLICATE_REMOVE:
             stats["duplicate"] += 1
             continue
-        if lower in UNCOUNTABLE or is_uncountable_compound(lower):
+        if lower in UNCOUNTABLE or has_compound_suffix(lower, UNCOUNTABLE_SUFFIXES):
             stats["uncountable"] += 1
             continue
-        if lower in MEDICAL or is_medical_compound(lower):
+        if lower in MEDICAL or has_compound_suffix(lower, MEDICAL_SUFFIXES):
             stats["medical"] += 1
             continue
         # Nominalisierte Infinitive: Neutrum + endet auf -en (das Gehen, das Hoeren)

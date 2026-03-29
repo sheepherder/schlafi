@@ -1,7 +1,9 @@
 const ARTICLE = { m: 'ein', f: 'eine', n: 'ein' };
 const CIRCUMFERENCE = 2 * Math.PI * 64; // matches r="64" in SVG
 
-// Pre-rendered voices (best first). Keep in sync with scripts/generate_audio.py:VOICES
+// Pre-rendered voices probed on startup (best first).
+// generate_audio.py supports all 30 Chirp 3: HD voices — to add one here,
+// generate it with --voice <Name>, then add its lowercase name to this array.
 const PRERENDERED_VOICES = ['enceladus', 'sadachbia', 'sadaltager', 'charon'];
 
 // ── State ──
@@ -19,7 +21,7 @@ let nextWordTime = 0;
 let recentWords = [];
 let selectedVoice = null;
 let availablePrerendered = []; // voices confirmed to have audio files
-let activeAudio = null; // currently playing Audio element
+const activeAudio = new Audio(); // reused for all pre-rendered playback
 
 // ── DOM ──
 const app = document.getElementById('app');
@@ -58,7 +60,9 @@ function getPrerenderedName() {
 // Keep in sync with scripts/generate_audio.py:make_filename()
 function audioFilename(genus, noun) {
   const article = ARTICLE[genus];
-  return (article + '_' + noun).toLowerCase().replace(/ /g, '_') + '.opus';
+  return (article + '_' + noun).toLowerCase().replace(/ /g, '_')
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    + '.opus';
 }
 
 function audioUrl(voice, genus, noun) {
@@ -169,9 +173,8 @@ function unlockTTS() {
 }
 
 function playPrerendered(genus, noun, vol) {
-  if (activeAudio) { activeAudio.pause(); activeAudio.src = ''; }
-  const url = audioUrl(getPrerenderedName(), genus, noun);
-  activeAudio = new Audio(url);
+  activeAudio.pause();
+  activeAudio.src = audioUrl(getPrerenderedName(), genus, noun);
   activeAudio.volume = vol;
   activeAudio.play().catch(e => console.error('Audio error:', e));
 }
@@ -339,7 +342,8 @@ function stopSession() {
   btnStartLabel.textContent = 'Einschlafen';
   btnStart.classList.remove('running');
 
-  if (activeAudio) { activeAudio.pause(); activeAudio.src = ''; activeAudio = null; }
+  activeAudio.pause();
+  activeAudio.src = '';
   if (ttsAvailable) synth.cancel();
   stopChromePauseWorkaround();
   clearInterval(timerInterval);

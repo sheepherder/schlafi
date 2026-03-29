@@ -4,11 +4,13 @@
 Uses Google Cloud Text-to-Speech (Chirp 3: HD) to render each word
 as a separate .opus file. One folder per voice.
 
-Voices (best first):
+Default voices (best first):
   1. Enceladus
   2. Sadachbia
   3. Sadaltager
   4. Charon
+
+All 30 Chirp 3: HD de-DE voices are supported via --voice or --all.
 
 Setup:
   Google Cloud Console: https://console.cloud.google.com/
@@ -18,8 +20,11 @@ Setup:
 
 Usage:
   export GOOGLE_TTS_API_KEY=your-key-here   # or put in .env
-  python scripts/generate_audio.py                    # all voices, all words
-  python scripts/generate_audio.py --voice Enceladus   # one voice
+  python scripts/generate_audio.py                       # default 4 voices
+  python scripts/generate_audio.py --voice Enceladus     # one specific voice
+  python scripts/generate_audio.py --voice Sulafat       # any of the 30 voices
+  python scripts/generate_audio.py --all                 # all 30 voices
+  python scripts/generate_audio.py --list                # list available voices
   python scripts/generate_audio.py --voice Enceladus --limit 10  # test run
 
 Requires: requests, ffmpeg (for opus encoding)
@@ -37,8 +42,23 @@ from pathlib import Path
 
 import requests
 
-# Voices in order of preference (best first)
-VOICES = ["Enceladus", "Sadachbia", "Sadaltager", "Charon"]
+# Default voices (best first) — generated when no --voice is specified
+DEFAULT_VOICES = ["Enceladus", "Sadachbia", "Sadaltager", "Charon"]
+
+# All available Chirp 3: HD voices for de-DE
+ALL_VOICES = {
+    # Male
+    "Achird": "m", "Algenib": "m", "Algieba": "m", "Alnilam": "m",
+    "Charon": "m", "Enceladus": "m", "Fenrir": "m", "Iapetus": "m",
+    "Orus": "m", "Puck": "m", "Rasalgethi": "m", "Sadachbia": "m",
+    "Sadaltager": "m", "Schedar": "m", "Umbriel": "m",
+    "Zubenelgenubi": "m",
+    # Female
+    "Achernar": "f", "Aoede": "f", "Autonoe": "f", "Callirrhoe": "f",
+    "Despina": "f", "Erinome": "f", "Gacrux": "f", "Kore": "f",
+    "Laomedeia": "f", "Leda": "f", "Pulcherrima": "f", "Sulafat": "f",
+    "Vindemiatrix": "f", "Zephyr": "f",
+}
 
 ARTICLE = {"m": "ein", "f": "eine", "n": "ein"}
 
@@ -65,8 +85,10 @@ def make_filename(genus, noun):
     Keep in sync with app.js:audioFilename()."""
     article = ARTICLE[genus]
     name = f"{article}_{noun}".lower()
-    # normalize for filesystem (keep umlauts, replace spaces)
     name = name.replace(" ", "_")
+    # ASCII-safe: replace umlauts to avoid Unicode normalization issues
+    for orig, repl in (('ä', 'ae'), ('ö', 'oe'), ('ü', 'ue'), ('ß', 'ss')):
+        name = name.replace(orig, repl)
     return f"{name}.opus"
 
 
@@ -138,7 +160,7 @@ def generate_voice(words, voice_name, api_key, output_dir, limit=None):
     voice_dir = output_dir / voice_name.lower()
     voice_dir.mkdir(parents=True, exist_ok=True)
 
-    subset = words[:limit] if limit else words
+    subset = words[:limit] if limit is not None else words
     total = len(subset)
     skipped = 0
     generated = 0
@@ -175,10 +197,45 @@ def generate_voice(words, voice_name, api_key, output_dir, limit=None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate TTS audio for Schlummershuffle")
-    parser.add_argument("--voice", choices=VOICES, help="Generate only this voice")
+    parser = argparse.ArgumentParser(
+        description="Generate TTS audio for Schlummershuffle",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="Use --list to see all available voices.")
+    parser.add_argument("voice", nargs="?", metavar="VOICE",
+                        help="Voice name (e.g. Enceladus). Use --list to see all.")
+    parser.add_argument("--defaults", action="store_true",
+                        help="Generate the 4 default voices")
+    parser.add_argument("--all", action="store_true",
+                        help="Generate all 30 voices")
+    parser.add_argument("--list", action="store_true",
+                        help="List available voices and exit")
     parser.add_argument("--limit", type=int, help="Limit to first N words (for testing)")
     args = parser.parse_args()
+
+    if args.list:
+        print("Available Chirp 3: HD voices for de-DE:\n")
+        for name in sorted(ALL_VOICES.keys()):
+            gender = "männlich" if ALL_VOICES[name] == "m" else "weiblich"
+            default = " *" if name in DEFAULT_VOICES else ""
+            print(f"  {name:20} {gender}{default}")
+        print(f"\n  * = default voices")
+        return
+
+    if args.voice:
+        # Case-insensitive lookup
+        match = {k.lower(): k for k in ALL_VOICES}
+        key = args.voice.lower()
+        if key not in match:
+            parser.error(f"unknown voice '{args.voice}'. Use --list to see options.")
+        voices = [match[key]]
+    elif args.defaults:
+        voices = DEFAULT_VOICES
+    elif args.all:
+        voices = sorted(ALL_VOICES.keys())
+    else:
+        parser.print_usage()
+        print("\nSpecify a voice name, --defaults, or --all. Use --list to see available voices.")
+        sys.exit(1)
 
     api_key = os.environ.get("GOOGLE_TTS_API_KEY")
     if not api_key:
@@ -192,7 +249,6 @@ def main():
     words = parse_words_js(words_path)
     print(f"Parsed {len(words)} words from words.js")
 
-    voices = [args.voice] if args.voice else VOICES
     for voice in voices:
         print(f"\nVoice: {voice}")
         generate_voice(words, voice, api_key, output_dir, args.limit)
