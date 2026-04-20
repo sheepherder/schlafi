@@ -369,16 +369,14 @@ let wakeLock = null;
 async function requestWakeLock() {
   if ('wakeLock' in navigator) {
     try {
-      wakeLock = await navigator.wakeLock.request('screen');
-      wakeLock.addEventListener('release', () => { wakeLock = null; });
-    } catch (e) { /* ignore */ }
+      const lock = await navigator.wakeLock.request('screen');
+      if (running) wakeLock = lock; else lock.release();
+    } catch (e) {}
   }
 }
 function releaseWakeLock() {
   if (wakeLock) { wakeLock.release(); wakeLock = null; }
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && running && !wakeLock) {
-    requestWakeLock();
-  }
+  if (document.visibilityState === 'visible' && running) requestWakeLock();
 });
