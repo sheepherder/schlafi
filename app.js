@@ -377,3 +377,8 @@ async function requestWakeLock() {
 function releaseWakeLock() {
   if (wakeLock) { wakeLock.release(); wakeLock = null; }
 }
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && running && !wakeLock) {
+    requestWakeLock();
+  }
+});
