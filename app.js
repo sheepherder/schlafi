@@ -1,5 +1,6 @@
 const ARTICLE = { m: 'ein', f: 'eine', n: 'ein' };
 const CIRCUMFERENCE = 2 * Math.PI * 64; // matches r="64" in SVG
+const HISTORY_LENGTH = 3; // Zahl der vorigen Wörter über dem aktuellen; Platz dafür in style.css (.word-history)
 
 // Pre-rendered voices probed on startup (best first).
 // generate_audio.py supports all 30 Chirp 3: HD voices — to add one here,
@@ -19,6 +20,7 @@ let timerDeadline = 0;
 let timerInterval = null;
 let nextWordTime = 0;
 let recentWords = [];
+let currentEntry = null; // [genus, noun] des angezeigten Wortes, für erneutes Abspielen per Tap
 let selectedVoice = null;
 let availablePrerendered = []; // voices confirmed to have audio files
 const activeAudio = new Audio(); // reused for all pre-rendered playback
@@ -28,6 +30,7 @@ const app = document.getElementById('app');
 const btnStart = document.getElementById('btnStart');
 const btnStartLabel = btnStart.querySelector('span');
 const currentWordEl = document.getElementById('currentWord');
+const wordHistoryEl = document.getElementById('wordHistory');
 const timerRing = document.getElementById('timerRing');
 timerRing.setAttribute('stroke-dasharray', CIRCUMFERENCE);
 const timerText = document.getElementById('timerText');
@@ -276,7 +279,8 @@ function getEffectiveVolume() {
 function showWord() {
   if (!running) return;
 
-  const [genus, noun] = pickWord();
+  const entry = pickWord();
+  const [genus, noun] = entry;
   const article = ARTICLE[genus];
   const display = article + ' ' + noun;
   const effVol = getEffectiveVolume();
@@ -286,6 +290,17 @@ function showWord() {
   currentWordEl.classList.add('fading');
 
   setTimeout(() => {
+    // Das bisherige Wort wandert in den Verlauf; das älteste fällt heraus.
+    if (currentEntry) {
+      const [g, n] = currentEntry;
+      const btn = document.createElement('button');
+      btn.className = 'history-word';
+      btn.textContent = ARTICLE[g] + ' ' + n;
+      btn.addEventListener('click', () => speak(g, n, getEffectiveVolume()));
+      wordHistoryEl.append(btn);
+      if (wordHistoryEl.children.length > HISTORY_LENGTH) wordHistoryEl.firstElementChild.remove();
+    }
+    currentEntry = entry;
     currentWordEl.textContent = display;
     currentWordEl.classList.remove('fading');
     requestAnimationFrame(() => {
@@ -304,6 +319,10 @@ function showWord() {
 
 }
 
+currentWordEl.addEventListener('click', () => {
+  if (currentEntry) speak(currentEntry[0], currentEntry[1], getEffectiveVolume());
+});
+
 function startSession() {
   if (window.goatcounter) window.goatcounter.count({ path: '/start', event: true });
   running = true;
@@ -312,6 +331,8 @@ function startSession() {
   btnStart.classList.add('running');
 
   recentWords = [];
+  currentEntry = null;
+  wordHistoryEl.replaceChildren();
 
   timerTotal = timerMinutes * 60;
   timerDeadline = Date.now() + timerTotal * 1000;

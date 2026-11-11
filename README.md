@@ -17,7 +17,8 @@ Alle paar Sekunden wird ein zufälliges deutsches Wort mit Artikel vorgelesen ("
 - 3500 konkrete deutsche Substantive, frequenzsortiert aus Korpusdaten
 - 4 vorgerenderte Stimmen (Google Cloud TTS), Browser-TTS als Fallback
 - Timer (15–60 min) mit sanftem Lautstärke-Fadeout in der letzten Minute
-- Wortpause einstellbar (5–20 Sekunden)
+- Wortpause einstellbar (5–60 Sekunden)
+- Die letzten drei Wörter bleiben sichtbar; Tippen auf ein Wort spielt es erneut ab
 - Nachtfreundliches Design mit warmem Dark-Theme
 - Wake Lock hält den Bildschirm an
 - Kein Framework, keine Dependencies, kein Build-Step

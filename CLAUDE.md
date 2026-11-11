@@ -52,7 +52,7 @@ Four source files:
 
 **State management:** global variables (`running`, `timerMinutes`, `intervalSeconds`, `volume`, `speechRate`, `speechPitch`, `selectedVoice`, etc.) — no framework.
 
-**UI pattern:** Single-page layout — settings are directly visible on the start screen (no hidden drawers or sheets). CSS-driven state toggle via `.container.running` hides settings and shows word display + timer ring. Chip selectors use `data-value` attributes and `aria-pressed` for timer/interval values.
+**UI pattern:** Single-page layout — settings are directly visible on the start screen (no hidden drawers or sheets). CSS-driven state toggle via `.container.running` hides settings and shows word display + timer ring. Above the current word, the last `HISTORY_LENGTH` (3) words are shown as a dimmed history; the current word and the history entries are buttons that replay the word on tap. Chip selectors use `data-value` attributes and `aria-pressed` for timer/interval values.
 
 **Visual design:** Warm dark palette (amber `#D4A46A` on near-black `#080810`) for nighttime readability. Typography: Fraunces serif for word display and title, Outfit sans-serif for UI. Subtle ambient glow (`body::before` radial gradient), film grain texture (`body::after` SVG noise), staggered `fade-up` entrance animations on settings groups. Moon crescent icon in start button.
 
